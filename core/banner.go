@@ -111,4 +111,6 @@ func Banner() {
 	fmt.Println()
 	putAsciiArt("__                                     __\n")
 	fmt.Println()
+  fmt.Println("               meow @ziggoon")
+  fmt.Println()
 }
